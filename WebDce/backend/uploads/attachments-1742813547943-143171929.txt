@@ -1,0 +1,220 @@
+// Dự án DCE-WEB - Khởi tạo cấu trúc
+
+// Folder: D:\DoPT\DCE-WEB
+
+// 1. Backend structure (Node.js + Express + Sequelize)
+// D:\DoPT\DCE-WEB\backend
+
+// package.json
+{
+  "name": "dce-web-backend",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sequelize": "^6.32.1",
+    "mysql2": "^3.6.0",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+
+// app.js
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.send('DCE-WEB Backend Running');
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// .env (mẫu)
+DB_HOST=db
+DB_USER=root
+DB_PASS=yourpassword
+DB_NAME=dce_web
+JWT_SECRET=your_jwt_secret
+PORT=5000
+
+// Tạo folder cấu trúc backend:
+// - models
+// - controllers
+// - routes
+// - middleware
+// - config
+
+// Sequelize init và cấu hình sẽ nằm trong config/db.js
+
+
+// 2. Frontend structure (React + Vite + Tailwind)
+// D:\DoPT\DCE-WEB\frontend
+
+// Tạo project bằng Vite:
+// npm create vite@latest frontend -- --template react
+
+// package.json (sau khi thêm Tailwind)
+{
+  "name": "dce-web-frontend",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2",
+    "vite": "^4.4.9"
+  }
+}
+
+// Cấu trúc thư mục React:
+// - src/
+//   - pages/
+//   - components/
+//   - services/
+//   - App.jsx
+//   - main.jsx
+// - index.html
+// - vite.config.js
+// - tailwind.config.js
+// - postcss.config.js
+
+// vite.config.js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: true,
+    port: 3000
+  }
+})
+
+// postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+// tailwind.config.js
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+// index.html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DCE-WEB</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+// src/main.jsx
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+
+// src/App.jsx
+export default function App() {
+  return <h1 className="text-2xl font-bold text-center text-blue-600">DCE-WEB Frontend Running</h1>
+}
+
+// src/index.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// Chạy frontend:
+// cd frontend
+// npm install
+// npm run dev
+
+
+// 3. docker-compose.yml (ở D:\DoPT\DCE-WEB)
+// Dùng để chạy backend + frontend + mysql
+
+// docker-compose.yml
+
+version: '3.9'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: yourpassword
+      MYSQL_DATABASE: dce_web
+    ports:
+      - "3306:3306"
+    volumes:
+      - dce_web_mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASS: yourpassword
+      DB_NAME: dce_web
+      JWT_SECRET: your_jwt_secret
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  dce_web_mysql_data:

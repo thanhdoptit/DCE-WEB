@@ -1,6 +1,10 @@
 // src/models/WorkShift.js
 export default (sequelize, DataTypes) => {
   const WorkShift = sequelize.define('WorkShift', {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     code: {
       type: DataTypes.STRING,
       allowNull: false,

@@ -4,6 +4,7 @@ import UserProfile from './pages/UserProfile';
 import AppLayout from './components/AppLayout';
 import ShiftList from './pages/ShiftList';
 import { useEffect } from 'react';
+import TaskPage from './pages/TaskPage';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -27,7 +28,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // Dummy pages
-const ReportPage = () => <div>📝 Báo cáo ca</div>;
+
 const HandoverPage = () => <div>🔄 Bàn giao ca</div>;
 
 export default function App() {
@@ -49,8 +50,9 @@ export default function App() {
           {/* Tất cả các route bên trong đều sẽ render trong AppLayout */}
           <Route path="me" element={<UserProfile />} />
           <Route path="dc/shifts" element={<ShiftList />} />
-          <Route path="dc/report" element={<ReportPage />} />
           <Route path="dc/handover" element={<HandoverPage />} />
+          <Route path="dc/task" element={<TaskPage />} />
+
         </Route>
 
         {/* Fallback */}

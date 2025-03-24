@@ -28,8 +28,8 @@ export default function AppLayout() {
 
   const menus = {
     Datacenter: [
-      { label: 'Ca làm việc', path: '/dc/shifts' },
-      { label: 'Công việc phát sinh', path: '/dc/task' },
+      { label: 'Quản Lý Ca Làm Việc', path: '/dc/shifts' },
+      { label: 'Quản Lý Công Việc', path: '/dc/task' },
       { label: 'Bàn giao ca', path: '/dc/handover' }
     ],
     Manager: [

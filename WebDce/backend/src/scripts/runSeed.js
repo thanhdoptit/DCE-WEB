@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import sequelize from '../config/database.js';
 import User from '../models/User.js';
 import { seedUsers } from './seedUsers.js';
+import { seedWorkShifts } from './seedWorkShifts.js';
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const run = async () => {
     console.log('✅ Connected to DB');
     await sequelize.sync({ alter: true });
     await seedUsers();
+    await seedWorkShifts();
     console.log('🌱 Seeding complete!');
     process.exit(0);
   } catch (err) {
