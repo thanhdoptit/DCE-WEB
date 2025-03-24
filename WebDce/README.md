@@ -1,141 +1,77 @@
-# DCE Web Application
+# DCE-Web Project
 
-A modern web application for managing work sessions and shift handovers.
+DCE-Web là dự án quản lý ca làm việc. Dưới đây là các hướng dẫn về cách commit, lấy mã nguồn từ Git và chạy Docker cho dự án.
 
-## Features
+---
 
-- User authentication and authorization
-- Work session management
-- Real-time session tracking
-- Shift handover system
-- Role-based access control
+## **Hướng dẫn Commit mã nguồn lên Git**
 
-## Tech Stack
+### **1. Khởi tạo Git repository (nếu chưa có)**
 
-### Frontend
-- React with TypeScript
-- Vite for build tooling
-- TailwindCSS for styling
-- React Query for data fetching
-- Zustand for state management
-- React Router for navigation
+1.Nếu bạn chưa khởi tạo Git repository cho dự án, chạy lệnh sau trong thư mục dự án:
+git init
 
-### Backend
-- Node.js with TypeScript
-- Express.js for API
-- Prisma as ORM
-- PostgreSQL for database
-- JWT for authentication
-- Winston for logging
+2. Thêm các file vào Git
+git add .
 
-## Prerequisites
+3. Kiểm tra trạng thái
+git status
 
-- Node.js 18 or later
-- Docker and Docker Compose
-- PostgreSQL (if running locally)
+4. Commit các thay đổi
+git commit -m "Nội dung hoặc sự thay đổi"
 
-## Getting Started
+5. Thêm remote repository (GitHub)
+git remote add origin https://github.com/thanhdoptit/DCE-WEB.git
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/dce-web.git
-   cd dce-web
-   ```
+6. Push các thay đổi lên GitHub
 
-2. Install dependencies:
-   ```bash
-   # Install frontend dependencies
-   cd frontend
-   npm install
+git push -u origin master
 
-   # Install backend dependencies
-   cd ../backend
-   npm install
-   ```
+## **2. Lấy mã nguồn từ Git (Clone Repository)
 
-3. Set up environment variables:
-   ```bash
-   # Frontend (.env)
-   cp frontend/.env.example frontend/.env
+1. Clone Repository
+git clone https://github.com/yourusername/DCE-WEB.git
 
-   # Backend (.env)
-   cp backend/.env.example backend/.env
-   ```
 
-4. Start the development servers:
+2. Checkout commit cụ thể (dựa trên commit hash)
+Lấy danh sách các commit: Để xem lịch sử các commit và tìm commit hash, bạn sử dụng lệnh:
 
-   Using Docker:
-   ```bash
-   docker-compose up
-   ```
 
-   Or locally:
-   ```bash
-   # Terminal 1 - Frontend
-   cd frontend
-   npm run dev
+git log
+Kết quả của git log sẽ trông giống như sau:
 
-   # Terminal 2 - Backend
-   cd backend
-   npm run dev
-   ```
 
-5. Initialize the database:
-   ```bash
-   cd backend
-   npx prisma migrate dev
-   ```
+commit 5f5d6c8a5473b3e9f1d9c945b8f9a7a9fa1ab87a (HEAD -> master)
+Author: Your Name <your.email@example.com>
+Date:   Fri Mar 20 10:32:50 2025 +0700
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+    Commit message here
 
-## Development
+commit 12d45f7ab4451b6a1b9bb3b1a16ff34f84034e3e
+Author: Your Name <your.email@example.com>
+Date:   Fri Mar 19 16:20:00 2025 +0700
 
-### Frontend Development
-```bash
-cd frontend
-npm run dev
-```
+  
+3.Checkout commit cụ thể: Sau khi tìm thấy commit hash, bạn có thể checkout đến commit đó bằng cách sử dụng lệnh:
 
-### Backend Development
-```bash
-cd backend
-npm run dev
-```
 
-### Database Management
-```bash
-# Generate Prisma Client
-npx prisma generate
+git checkout <commit-hash>
+Ví dụ:
 
-# Create a migration
-npx prisma migrate dev
+git checkout 5f5d6c8a5473b3e9f1d9c945b8f9a7a9fa1ab87a
 
-# Reset database
-npx prisma migrate reset
+##**4. Chạy docker ( hiện tại đang để chạy mỗi MySQL, vì backend và frontend đang trong quá trình dev, backend và fronted sẽ thủ công).
 
-# Open Prisma Studio
-npx prisma studio
-```
+Cài docker, mở cmd vào thư mục WebDce (nơi có file docker-compose.yml) và chạy lệnh :
 
-## Deployment
+docker-compose up --build
 
-1. Build the images:
-   ```bash
-   docker-compose build
-   ```
+chạy xong chạy lệnh 
 
-2. Start the services:
-   ```bash
-   docker-compose up -d
-   ```
+docker ps 
 
-3. Initialize the database:
-   ```bash
-   docker-compose exec backend npx prisma migrate deploy
-   ```
+để kiểm tra xem các images đã up chưa.
 
-## License
 
-This project is licensed under the ISC License. 
+
+
