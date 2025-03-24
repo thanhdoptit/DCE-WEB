@@ -11,5 +11,14 @@ export default (sequelize, DataTypes) => {
       }
     });
   
+    UserShift.associate = (models) => {
+      UserShift.belongsTo(models.User, {
+        foreignKey: 'userId'
+      });
+      UserShift.belongsTo(models.WorkShift, {
+        foreignKey: 'workShiftId'
+      });
+    };
+  
     return UserShift;
   };

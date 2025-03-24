@@ -11,11 +11,17 @@ export const authenticate = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
-    if (!user) return res.status(403).json({ message: 'Token không hợp lệ' });
+const user = await User.findByPk(decoded.id);
+if (!user) return res.status(403).json({ message: 'Token không hợp lệ' });
 
-    req.user = user;
-    next();
+req.user = {
+  id: user.id,
+  fullname: user.fullname,
+  username: user.username,
+  role: user.role
+};
+
+next();
   } catch (err) {
     return res.status(403).json({ message: 'Token không hợp lệ hoặc hết hạn' });
   }

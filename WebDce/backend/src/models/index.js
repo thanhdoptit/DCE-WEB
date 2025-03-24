@@ -19,5 +19,6 @@ db.UserShift = UserShiftModel(sequelize, Sequelize.DataTypes);
 
 db.User.associate(db);
 db.WorkShift.associate(db);
+db.UserShift.associate?.(db);
 
 export default db;

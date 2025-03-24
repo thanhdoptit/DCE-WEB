@@ -33,6 +33,9 @@ export default (sequelize, DataTypes) => {
       foreignKey: 'workShiftId',
       otherKey: 'userId'
     });
+    WorkShift.hasMany(models.UserShift, {
+      foreignKey: 'workShiftId'
+    });
   };
 
   return WorkShift;

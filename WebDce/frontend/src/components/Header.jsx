@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL;
-const shifts = ['T1', 'T2', 'T3', 'H1', 'H2', 'V1', 'V2'];
 
 export default function Header() {
   const [user, setUser] = useState(null);
+  const [shift, setShift] = useState(null);
   const [selectedShift, setSelectedShift] = useState('');
   const navigate = useNavigate();
+
+  const shifts = ['T1', 'T2', 'T3', 'H1', 'H2', 'V1', 'V2'];
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -16,25 +18,80 @@ export default function Header() {
       return;
     }
 
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
-    fetchShift(parsedUser.id);
+    const parsed = JSON.parse(storedUser);
+    setUser(parsed);
+    fetchCurrentShift();
   }, []);
 
-  const fetchShift = async (userId) => {
+  const fetchCurrentShift = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/users/${userId}/shift`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const res = await fetch(`${API_URL}/api/shifts/user`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await res.json();
-      if (res.ok) {
-        setSelectedShift(data.selectedShift);
+
+      if (!res.ok) {
+        setShift(null);
+        return;
       }
+
+      const data = await res.json();
+      setShift(data.shift);
     } catch (err) {
-      console.error('Lỗi lấy ca làm việc:', err);
+      console.error('Không tìm thấy ca trực hiện tại:', err.message);
+    }
+  };
+
+  const handleShiftSelect = async (e) => {
+    const code = e.target.value;
+    if (!code) return;
+
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/api/shifts/select`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ shiftCode: code })
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.message);
+        return;
+      }
+
+      setShift(result.shift);
+      setSelectedShift(code);
+    } catch (err) {
+      console.error('❌ Shift select error:', err);
+      alert('Có lỗi khi chọn ca');
+    }
+  };
+
+  const handleEndShift = async () => {
+    if (!shift) return;
+
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/api/shifts/close/${shift.id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.message);
+        return;
+      }
+
+      alert('Đã kết thúc ca làm việc.');
+      setShift(null); // reset về trạng thái chưa có ca
+    } catch (err) {
+      console.error('❌ Lỗi khi kết thúc ca:', err);
+      alert('Có lỗi khi kết thúc ca');
     }
   };
 
@@ -43,46 +100,16 @@ export default function Header() {
     navigate('/login');
   };
 
-  const handleShiftSelect = async (e) => {
-    const shiftCode = e.target.value;
-    const token = localStorage.getItem('token');
-
-    try {
-      const res = await fetch(`${API_URL}/api/users/selected-shift`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ shiftCode })
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        setSelectedShift(shiftCode);
-        alert('✅ Đã cập nhật ca trực: ' + shiftCode);
-      } else {
-        console.error('❌ Shift select error:', result.message);
-        alert(result.message || 'Không thể cập nhật ca trực');
-      }
-    } catch (err) {
-      console.error('🔥 Lỗi khi chọn ca:', err);
-      alert('Có lỗi xảy ra khi chọn ca');
-    }
-  };
-
   if (!user) return null;
 
   return (
     <header className="flex justify-between items-center p-4 bg-blue-600 text-white">
-      <h1 className="text-xl font-bold">Quản lý ca trực</h1>
-
+      <h1 className="text-xl font-bold">Hệ thống quản lý ca trực</h1>
       <div className="flex items-center gap-4">
         {user.role === 'Datacenter' && (
           <>
             <span>
-              Ca hiện tại: <strong>{selectedShift || 'Chưa chọn'}</strong>
+              Ca hiện tại: <strong>{shift ? `${shift.code} (${shift.status})` : 'Chưa có ca'}</strong>
             </span>
             <select
               value={selectedShift}
@@ -94,6 +121,14 @@ export default function Header() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            {shift && shift.status !== 'done' && (
+              <button
+                onClick={handleEndShift}
+                className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+              >
+                Kết thúc ca
+              </button>
+            )}
           </>
         )}
         <span>👤 {user.fullname} ({user.role})</span>
