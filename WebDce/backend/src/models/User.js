@@ -1,3 +1,4 @@
+// src/models/User.js
 export default (sequelize, DataTypes) => {
   const User = sequelize.define('User', {
     username: {
@@ -30,15 +31,14 @@ export default (sequelize, DataTypes) => {
       defaultValue: false
     }
   });
-  
-    User.associate = (models) => {
-      User.hasMany(models.WorkSession, { foreignKey: 'userId' });
-      User.belongsToMany(models.WorkShift, {
-        through: models.WorkSession,
-        foreignKey: 'userId',
-      });
-    };
-  
-    return User;
+
+  User.associate = (models) => {
+    User.belongsToMany(models.WorkShift, {
+      through: models.UserShift,
+      foreignKey: 'userId',
+      otherKey: 'workShiftId'
+    });
   };
-  
+
+  return User;
+};

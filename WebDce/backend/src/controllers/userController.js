@@ -1,6 +1,5 @@
-import User from '../models/User.js';
 import db from '../models/index.js';  // Import db object
-const { WorkShift } = db;  // Destructure WorkShift from db
+const { User, WorkShift, UserShift } = db;
 
 export const getProfile = async (req, res) => {
   try {
@@ -58,47 +57,81 @@ export const updateSelectedShift = async (req, res) => {
 };
 
 export const updateMyShift = async (req, res) => {
-    const { shiftCode } = req.body;
-    try {
-      const user = await User.findByPk(req.user.id);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      user.selectedShift = shiftCode;
-      await user.save();
-      return res.json({ message: 'Cập nhật ca thành công', selectedShift: shiftCode });
-    } catch (err) {
-      console.error('PUT /selected-shift error:', err);
-      return res.status(500).json({ message: 'Lỗi server' });
-    }
-  };
-  
+  const userId = req.user.id;
+  const { shiftCode } = req.body;
 
-  export const getUserShift = async (req, res) => {
-    const userId = req.params.id;
-  
-    try {
-      // Lấy thông tin ca làm việc của người dùng từ bảng WorkShift
-      const userShift = await WorkShift.findOne({
-        where: {
-          '$Users.id$': userId,  // Kiểm tra xem người dùng có tham gia vào ca làm việc này không
-        },
-        include: [{
-          model: User,
-          attributes: ['id'],
-        }],
+  if (!shiftCode) {
+    return res.status(400).json({ message: 'Thiếu mã ca trực' });
+  }
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // 🔍 Tìm hoặc tạo WorkShift hôm nay với shiftCode
+    let shift = await WorkShift.findOne({ where: { code: shiftCode, date: today } });
+    if (!shift) {
+      shift = await WorkShift.create({
+        code: shiftCode,
+        date: today,
+        createdBy: userId
       });
-  
-      if (userShift) {
-        return res.json({
-          selectedShift: userShift.code,  // Trả về mã ca làm việc
-          shiftId: userShift.id,  // Trả về ID của ca làm việc
-        });
-      } else {
-        return res.status(404).json({ message: 'Không có ca làm việc cho người dùng' });
-      }
-    } catch (err) {
-      console.error('Error fetching user shift:', err);
-      return res.status(500).json({ message: 'Lỗi server khi lấy thông tin ca làm việc' });
     }
-  };
+
+    // 🧹 Xóa mọi UserShift của user trong ngày hôm nay
+    const shiftsToday = await WorkShift.findAll({
+      where: { date: today },
+      include: [{
+        model: User,
+        where: { id: userId }
+      }]
+    });
+
+    for (const s of shiftsToday) {
+      await UserShift.destroy({
+        where: { userId, workShiftId: s.id }
+      });
+    }
+
+    // ✅ Thêm mới UserShift
+    await UserShift.create({
+      userId,
+      workShiftId: shift.id
+    });
+
+    return res.json({
+      message: 'Đã cập nhật ca trực thành công',
+      shift: { code: shift.code, date: shift.date }
+    });
+
+  } catch (err) {
+    console.error('❌ updateMyShift error:', err);
+    return res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+
+export const getUserShift = async (req, res) => {
+  const userId = req.params.id;
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    const shift = await WorkShift.findOne({
+      where: { date: today },
+      include: {
+        model: User,
+        where: { id: userId },
+        through: { attributes: [] }
+      }
+    });
+
+    if (!shift) return res.json({ selectedShift: '' });
+
+    res.json({ selectedShift: shift.code });
+  } catch (err) {
+    console.error('Error fetching shift:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
   
  
