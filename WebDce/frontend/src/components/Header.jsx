@@ -33,9 +33,9 @@ export default function Header() {
         },
         body: JSON.stringify({ shiftCode: shift })
       });
-
+  
       if (!res.ok) throw await res.json();
-
+  
       const updated = { ...user, selectedShift: shift };
       setUser(updated); 
       setSelectedShift(shift);
@@ -45,7 +45,6 @@ export default function Header() {
       alert(err.message || 'Không thể chọn ca');
     }
   };
-
   if (!user) return null;
 
   const hasSession = Boolean(localStorage.getItem('currentWorkSession'));

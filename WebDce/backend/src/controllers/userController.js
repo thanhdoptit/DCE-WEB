@@ -1,5 +1,7 @@
 import User from '../models/User.js';
-import { WorkShift } from '../models/index.js'; 
+import db from '../models/index.js';  // Import db object
+const { WorkShift } = db;  // Destructure WorkShift from db
+
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {

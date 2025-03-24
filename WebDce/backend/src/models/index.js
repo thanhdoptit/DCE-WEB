@@ -1,19 +1,19 @@
-import { Sequelize, DataTypes } from 'sequelize';
+import Sequelize from 'sequelize';
 import sequelize from '../config/database.js';
-import UserModel from './User.js';
-import WorkShiftModel from './WorkShift.js';
-import WorkSessionModel from './WorkSession.js';
+import User from './User.js';
+import WorkShift from './WorkShift.js';
+import WorkSession from './WorkSession.js';
 
 const db = {};
 
-// Khởi tạo Sequelize instance
+// Kết nối Sequelize và mô hình
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-// Định nghĩa mô hình mà không dùng 'new'
-db.User = UserModel(db.sequelize, DataTypes);        // Gọi hàm trả về mô hình
-db.WorkShift = WorkShiftModel(db.sequelize, DataTypes);  // Gọi hàm trả về mô hình
-db.WorkSession = WorkSessionModel(db.sequelize, DataTypes); // Gọi hàm trả về mô hình
+// Xuất các mô hình đúng cách
+db.User = User(sequelize, Sequelize.DataTypes);  // Thêm (sequelize, Sequelize.DataTypes)
+db.WorkShift = WorkShift(sequelize, Sequelize.DataTypes);  // Thêm (sequelize, Sequelize.DataTypes)
+db.WorkSession = WorkSession(sequelize, Sequelize.DataTypes);  // Thêm (sequelize, Sequelize.DataTypes)
 
 // Định nghĩa quan hệ (associations)
 db.User.associate(db);  // Giúp User liên kết với các mô hình khác nếu có
