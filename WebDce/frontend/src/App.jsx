@@ -1,33 +1,59 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import UserProfile from './pages/UserProfile';
-import Header from './components/Header';
-
-// Dummy pages
-const AdminPage = () => <div><Header /><div className="p-10">🎩 Trang Admin</div></div>;
-const DCPage = () => <div><Header /><div className="p-10">🖥️ Trang Datacenter</div></div>;
-const ManagerPage = () => <div><Header /><div className="p-10">📊 Trang Manager</div></div>;
-const BEPage = () => <div><Header /><div className="p-10">⚙️ Trang Backend Engineer</div></div>;
-const UserPage = () => <div><Header /><div className="p-10">👤 Trang User</div></div>;
+import AppLayout from './components/AppLayout';
+import ShiftList from './pages/ShiftList';
+import { useEffect } from 'react';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" />;
+  const user = localStorage.getItem('user');
+
+  if (!token || !user) {
+    // Xóa dữ liệu không hợp lệ
+    localStorage.clear();
+    return <Navigate to="/login" />;
+  }
+
+  try {
+    // Kiểm tra user data có hợp lệ không
+    JSON.parse(user);
+    return children;
+  } catch (err) {
+    console.error('Invalid user data:', err);
+    localStorage.clear();
+    return <Navigate to="/login" />;
+  }
 };
+
+// Dummy pages
+const ReportPage = () => <div>📝 Báo cáo ca</div>;
+const HandoverPage = () => <div>🔄 Bàn giao ca</div>;
 
 export default function App() {
   return (
     <Router>
       <Routes>
+        {/* Login page */}
         <Route path="/login" element={<Login />} />
-        <Route path="/me" element={<ProtectedRoute><Header /><UserProfile /></ProtectedRoute>} />
 
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-        <Route path="/dc" element={<ProtectedRoute><DCPage /></ProtectedRoute>} />
-        <Route path="/manager" element={<ProtectedRoute><ManagerPage /></ProtectedRoute>} />
-        <Route path="/be" element={<ProtectedRoute><BEPage /></ProtectedRoute>} />
-        <Route path="/user" element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
+        {/* Protected layout dùng chung */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Tất cả các route bên trong đều sẽ render trong AppLayout */}
+          <Route path="me" element={<UserProfile />} />
+          <Route path="dc/shifts" element={<ShiftList />} />
+          <Route path="dc/report" element={<ReportPage />} />
+          <Route path="dc/handover" element={<HandoverPage />} />
+        </Route>
 
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>

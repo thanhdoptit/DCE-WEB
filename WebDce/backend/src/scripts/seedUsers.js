@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
-import User from '../models/User.js';
+import db from '../models/index.js';
+const { User } = db;
 
 export const seedUsers = async () => {
   const defaultUsers = [
@@ -25,6 +26,24 @@ export const seedUsers = async () => {
       username: 'manager',
       fullname: 'Manager Person',
       role: 'Manager',
+      isADUser: false
+    },
+    {
+      username: 'dce1',
+      fullname: 'DCE User 1',
+      role: 'Datacenter',
+      isADUser: false
+    },
+    {
+      username: 'dce2',
+      fullname: 'DCE User 2',
+      role: 'Datacenter',
+      isADUser: false
+    },
+    {
+      username: 'dce3',
+      fullname: 'DCE User 3',
+      role: 'Datacenter',
       isADUser: false
     }
   ];

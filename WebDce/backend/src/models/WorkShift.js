@@ -17,6 +17,12 @@ export default (sequelize, DataTypes) => {
     createdBy: {
       type: DataTypes.INTEGER,
       allowNull: false
+    },
+    workedUsers: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+      comment: 'Mảng chứa thông tin người đã làm việc trong ca: [{id, username, fullname}]'
     }
   }, {
     indexes: [

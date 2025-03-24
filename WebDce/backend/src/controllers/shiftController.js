@@ -29,9 +29,19 @@ export const selectShift = async (req, res) => {
         return res.status(400).json({ message: 'Bạn đã có ca hôm nay. Hãy dùng chức năng thay đổi ca.' });
       }
   
+      // Lấy thông tin user hiện tại
+      const currentUser = await User.findByPk(userId, {
+        attributes: ['id', 'username', 'fullname']
+      });
+  
       // 🔍 Tìm ca tương ứng với mã ca và ngày hôm nay
       let shift = await WorkShift.findOne({
-        where: { code: shiftCode, date: today }
+        where: { code: shiftCode, date: today },
+        include: [{
+          model: User,
+          through: { attributes: [] },
+          attributes: ['id', 'username', 'fullname']
+        }]
       });
   
       if (shift) {
@@ -41,19 +51,61 @@ export const selectShift = async (req, res) => {
   
         // ✅ Ca tồn tại và chưa done → gán user
         await UserShift.create({ userId, workShiftId: shift.id });
+
+        // Thêm user vào danh sách đã làm việc
+        const workedUsers = shift.workedUsers || [];
+        if (!workedUsers.find(u => u.id === currentUser.id)) {
+          workedUsers.push({
+            id: currentUser.id,
+            username: currentUser.username,
+            fullname: currentUser.fullname
+          });
+          shift.workedUsers = workedUsers;
+          await shift.save();
+        }
+
+        // Refresh shift data với danh sách user mới
+        shift = await WorkShift.findOne({
+          where: { id: shift.id },
+          include: [{
+            model: User,
+            through: { attributes: [] },
+            attributes: ['id', 'username', 'fullname']
+          }]
+        });
       } else {
         // ✅ Ca chưa tồn tại → tạo mới
         shift = await WorkShift.create({
           code: shiftCode,
           date: today,
           status: 'doing',
-          createdBy: userId
+          createdBy: userId,
+          workedUsers: [{
+            id: currentUser.id,
+            username: currentUser.username,
+            fullname: currentUser.fullname
+          }]
         });
   
         await UserShift.create({ userId, workShiftId: shift.id });
+
+        // Refresh shift data với user mới
+        shift = await WorkShift.findOne({
+          where: { id: shift.id },
+          include: [{
+            model: User,
+            through: { attributes: [] },
+            attributes: ['id', 'username', 'fullname']
+          }]
+        });
       }
   
-      return res.json({ message: 'Chọn ca thành công', shift });
+      return res.json({ 
+        message: shift.Users.length > 1 
+          ? `Chọn ca thành công. Hiện có ${shift.Users.length} người trong ca này.`
+          : 'Chọn ca thành công',
+        shift 
+      });
     } catch (err) {
       console.error('❌ selectShift error:', err);
       return res.status(500).json({ message: 'Lỗi server khi chọn ca' });
@@ -68,19 +120,24 @@ export const changeShift = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-   // Xoá ca cũ của user hôm nay
-const todayShifts = await WorkShift.findAll({
-    where: { date: today },
-    attributes: ['id']
-  });
-  const shiftIds = todayShifts.map(s => s.id);
-  
-  await UserShift.destroy({
-    where: {
-      userId,
-      workShiftId: shiftIds
-    }
-  });
+    // Lấy thông tin user hiện tại
+    const currentUser = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'fullname']
+    });
+
+    // Xoá ca cũ của user hôm nay
+    const todayShifts = await WorkShift.findAll({
+      where: { date: today },
+      attributes: ['id']
+    });
+    const shiftIds = todayShifts.map(s => s.id);
+    
+    await UserShift.destroy({
+      where: {
+        userId,
+        workShiftId: shiftIds
+      }
+    });
 
     // Tìm hoặc tạo ca mới
     let shift = await WorkShift.findOne({
@@ -92,8 +149,25 @@ const todayShifts = await WorkShift.findAll({
         code: shiftCode,
         date: today,
         status: 'doing',
-        createdBy: userId
+        createdBy: userId,
+        workedUsers: [{
+          id: currentUser.id,
+          username: currentUser.username,
+          fullname: currentUser.fullname
+        }]
       });
+    } else {
+      // Thêm user vào danh sách đã làm việc của ca mới
+      const workedUsers = shift.workedUsers || [];
+      if (!workedUsers.find(u => u.id === currentUser.id)) {
+        workedUsers.push({
+          id: currentUser.id,
+          username: currentUser.username,
+          fullname: currentUser.fullname
+        });
+        shift.workedUsers = workedUsers;
+        await shift.save();
+      }
     }
 
     await UserShift.create({ userId, workShiftId: shift.id });
@@ -110,19 +184,45 @@ export const closeShift = async (req, res) => {
     const shiftId = req.params.id;
   
     try {
-      const shift = await WorkShift.findByPk(shiftId);
+      const shift = await WorkShift.findByPk(shiftId, {
+        include: [{
+          model: User,
+          through: { attributes: [] },
+          attributes: ['id', 'username', 'fullname']
+        }]
+      });
+
       if (!shift) return res.status(404).json({ message: 'Ca không tồn tại' });
   
       // Cập nhật trạng thái ca
       shift.status = 'done';
+      
+      // Giữ lại danh sách workedUsers cũ và thêm users hiện tại nếu chưa có
+      const workedUsers = [...(shift.workedUsers || [])];
+      shift.Users.forEach(user => {
+        if (!workedUsers.find(u => u.id === user.id)) {
+          workedUsers.push({
+            id: user.id,
+            username: user.username,
+            fullname: user.fullname
+          });
+        }
+      });
+      shift.workedUsers = workedUsers;
       await shift.save();
   
       // Xoá toàn bộ UserShift liên quan đến ca này (giải phóng user)
       await UserShift.destroy({
         where: { workShiftId: shiftId }
       });
+
+      // Refresh shift data để lấy thông tin mới nhất
+      const updatedShift = await WorkShift.findByPk(shiftId);
   
-      res.json({ message: 'Đã kết thúc và giải phóng ca trực thành công', shift });
+      res.json({ 
+        message: `Đã kết thúc ca trực thành công. ${workedUsers.length} người đã tham gia ca này.`,
+        shift: updatedShift 
+      });
     } catch (err) {
       console.error('❌ closeShift error:', err);
       res.status(500).json({ message: 'Lỗi server khi đóng ca' });
@@ -132,7 +232,7 @@ export const closeShift = async (req, res) => {
 
 // Lấy trạng thái ca hiện tại của user
 export const getCurrentShift = async (req, res) => {
-    const userId = req.user.id;  // phải lấy từ token, không phải req.params
+    const userId = req.user.id;
     const today = new Date().toISOString().split('T')[0];
   
     try {
@@ -150,7 +250,11 @@ export const getCurrentShift = async (req, res) => {
       });
   
       if (!userShift) {
-        return res.status(404).json({ message: 'Chưa có ca làm việc hôm nay' });
+        // Trả về 200 với shift: null thay vì 404
+        return res.status(200).json({ 
+          shift: null,
+          message: 'Chưa có ca làm việc hôm nay'
+        });
       }
   
       res.json({ shift: userShift.WorkShift });

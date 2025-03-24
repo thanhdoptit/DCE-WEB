@@ -19,23 +19,17 @@ export default function Login() {
       localStorage.setItem('token', data.token);
 
       toast.success('Đăng nhập thành công!');
-      const role = data.user.role.toLowerCase();
-
-      switch (role) {
-        case 'admin':
-          navigate('/admin');
+      
+      // Redirect dựa vào role
+      switch (data.user.role) {
+        case 'Datacenter':
+          navigate('/dc/shifts');
           break;
-        case 'dc':
-          navigate('/dc');
-          break;
-        case 'manager':
-          navigate('/manager');
-          break;
-        case 'be':
-          navigate('/be');
+        case 'Manager':
+          navigate('/manager/overview');
           break;
         default:
-          navigate('/user');
+          navigate('/me');
       }
     } catch (err) {
       toast.error(err.message || 'Đăng nhập thất bại!');

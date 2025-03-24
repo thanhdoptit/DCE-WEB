@@ -2,51 +2,111 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const POLLING_INTERVAL = 30000; // 30 seconds
 
-export default function Header() {
-  const [user, setUser] = useState(null);
+export default function Header({ user }) {
   const [shift, setShift] = useState(null);
   const [selectedShift, setSelectedShift] = useState('');
+  const [availableShifts, setAvailableShifts] = useState([]);
   const navigate = useNavigate();
 
-  const shifts = ['T1', 'T2', 'T3', 'H1', 'H2', 'V1', 'V2'];
+  const fetchAvailableShifts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
+      // Lấy tất cả ca trong ngày
+      const res = await fetch(`${API_URL}/api/shifts/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) return;
+
+      const allShifts = await res.json();
+      
+      // Lọc ra các ca đã tồn tại và chưa kết thúc
+      const existingShiftCodes = allShifts
+        .filter(s => s.status !== 'done')
+        .map(s => s.code);
+
+      // Thêm các ca cố định nếu chưa tồn tại hoặc chưa kết thúc
+      const fixedShifts = ['T1', 'T2', 'T3', 'H1', 'H2', 'V1', 'V2'];
+      const availableCodes = fixedShifts.filter(code => !allShifts.some(s => s.code === code && s.status === 'done'));
+      
+      // Tạo danh sách ca có thể chọn
+      const availableShifts = availableCodes.map(code => ({
+        code,
+        exists: existingShiftCodes.includes(code)
+      }));
+      
+      setAvailableShifts(availableShifts);
+    } catch (err) {
+      console.error('Lỗi khi lấy danh sách ca:', err);
     }
-
-    const parsed = JSON.parse(storedUser);
-    setUser(parsed);
-    fetchCurrentShift();
-  }, []);
+  };
 
   const fetchCurrentShift = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       const res = await fetch(`${API_URL}/api/shifts/user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      if (res.status === 401 || res.status === 403) {
+        localStorage.clear();
+        navigate('/login');
+        return;
+      }
+
       if (!res.ok) {
+        console.error('Lỗi khi lấy ca trực:', res.status);
         setShift(null);
         return;
       }
 
       const data = await res.json();
-      setShift(data.shift);
+      setShift(data.shift); // Có thể null, đây là trường hợp bình thường
     } catch (err) {
-      console.error('Không tìm thấy ca trực hiện tại:', err.message);
+      console.error('Lỗi khi lấy ca trực:', err.message);
+      setShift(null);
     }
   };
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Gọi lần đầu
+    fetchCurrentShift();
+    fetchAvailableShifts();
+
+    // Set up polling interval
+    const interval = setInterval(() => {
+      fetchCurrentShift();
+      fetchAvailableShifts();
+    }, POLLING_INTERVAL);
+
+    // Cleanup khi component unmount
+    return () => clearInterval(interval);
+  }, [user, navigate]);
 
   const handleShiftSelect = async (e) => {
     const code = e.target.value;
     if (!code) return;
 
     const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/shifts/select`, {
         method: 'PUT',
@@ -57,6 +117,12 @@ export default function Header() {
         body: JSON.stringify({ shiftCode: code })
       });
 
+      if (res.status === 401 || res.status === 403) {
+        localStorage.clear();
+        navigate('/login');
+        return;
+      }
+
       const result = await res.json();
       if (!res.ok) {
         alert(result.message);
@@ -65,6 +131,8 @@ export default function Header() {
 
       setShift(result.shift);
       setSelectedShift(code);
+      // Refresh danh sách ca có thể chọn
+      fetchAvailableShifts();
     } catch (err) {
       console.error('❌ Shift select error:', err);
       alert('Có lỗi khi chọn ca');
@@ -75,11 +143,22 @@ export default function Header() {
     if (!shift) return;
 
     const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/shifts/close/${shift.id}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      if (res.status === 401 || res.status === 403) {
+        localStorage.clear();
+        navigate('/login');
+        return;
+      }
 
       const result = await res.json();
       if (!res.ok) {
@@ -89,6 +168,8 @@ export default function Header() {
 
       alert('Đã kết thúc ca làm việc.');
       setShift(null); // reset về trạng thái chưa có ca
+      // Refresh danh sách ca có thể chọn
+      fetchAvailableShifts();
     } catch (err) {
       console.error('❌ Lỗi khi kết thúc ca:', err);
       alert('Có lỗi khi kết thúc ca');
@@ -115,10 +196,13 @@ export default function Header() {
               value={selectedShift}
               onChange={handleShiftSelect}
               className="text-black px-2 py-1 rounded"
+              disabled={availableShifts.length === 0}
             >
               <option value="">Chọn ca</option>
-              {shifts.map((s) => (
-                <option key={s} value={s}>{s}</option>
+              {availableShifts.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.code}{s.exists ? ' (Đang diễn ra)' : ''}
+                </option>
               ))}
             </select>
             {shift && shift.status !== 'done' && (
